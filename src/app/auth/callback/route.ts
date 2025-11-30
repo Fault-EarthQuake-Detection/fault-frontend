@@ -11,8 +11,6 @@ export async function GET(request: NextRequest) {
 
   if (code) {
     const cookieStore = await cookies();
-    
-    // Kita pakai createServerClient, SAMA seperti di server.ts
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -30,11 +28,11 @@ export async function GET(request: NextRequest) {
         },
       }
     );
-    
-    // Sisa kodenya sama
     await supabase.auth.exchangeCodeForSession(code);
   }
 
-  // Arahkan user ke halaman dashboard setelah login
-  return NextResponse.redirect(`${requestUrl.origin}/dashboard`);
+  // --- PERUBAHAN ---
+  // Arahkan user ke halaman utama ('/') setelah login Google
+  return NextResponse.redirect(`${requestUrl.origin}/`);
+  // -----------------
 }

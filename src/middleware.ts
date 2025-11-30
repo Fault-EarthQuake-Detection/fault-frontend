@@ -18,6 +18,5 @@ export async function middleware(request: NextRequest) {
 // Tentukan halaman mana yang mau "dijaga" oleh satpam
 export const config = {
   matcher: [
-    '/dashboard/:path*', // Lindungi semua rute di bawah /dashboard
   ],
 };
