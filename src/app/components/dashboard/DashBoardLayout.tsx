@@ -1,5 +1,3 @@
-// src/components/dashboard/DashboardLayout.tsx
-
 'use client';
 
 import { useState } from 'react';
@@ -9,25 +7,35 @@ import Sidebar from './SideBar';
 import ContentFeed from './ContentFeed';
 import ChatBot from './ChatBot';
 import BottomNav from './BottomNav';
-import ChatFab from './ChatFab'; // 1. Impor FAB baru
+import ChatFab from './ChatFab';
 
 type LayoutProps = {
   user: SupabaseUser | null;
+  children?: React.ReactNode;
+  // Tambahkan props untuk mengontrol visibilitas
+  showSidebar?: boolean;
+  showChatbot?: boolean;
 };
 
-export default function DashboardLayout({ user }: LayoutProps) {
+export default function DashboardLayout({ 
+  user, 
+  children,
+  showSidebar = true, // Default tampil
+  showChatbot = true  // Default tampil
+}: LayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
 
   return (
     <div className="flex h-screen flex-col bg-gray-50 text-black">
-      {/* Hapus onToggleChatbot dari Header */}
+      {/* Header selalu tampil */}
       <Header
         user={user}
-        onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+        // Matikan toggle jika sidebar disembunyikan
+        onToggleSidebar={() => showSidebar && setIsSidebarOpen(!isSidebarOpen)}
       />
 
-      {/* Overlay (tidak berubah) */}
+      {/* Overlay */}
       {(isSidebarOpen || isChatOpen) && (
         <div
           className="fixed inset-0 z-20 bg-black/50 md:hidden"
@@ -39,40 +47,44 @@ export default function DashboardLayout({ user }: LayoutProps) {
       )}
 
       <div className="flex flex-1 overflow-hidden">
-        {/* === Sidebar === */}
-        {/* Note 1: Ubah w-64 -> w-80 */}
-        <Sidebar user={user} className="hidden w-80 md:flex" />
-        <Sidebar
-          user={user}
-          // Note 1: Ubah w-64 -> w-80
-          className={`fixed inset-y-0 left-0 z-30 w-80 transform transition-transform md:hidden ${
-            isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-          }`}
-          onClose={() => setIsSidebarOpen(false)}
-        />
+        {/* === Sidebar (Kondisional) === */}
+        {showSidebar && (
+          <>
+            <Sidebar user={user} className="hidden w-80 md:flex" />
+            <Sidebar
+              user={user}
+              className={`fixed inset-y-0 left-0 z-30 w-80 transform transition-transform md:hidden ${
+                isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+              }`}
+              onClose={() => setIsSidebarOpen(false)}
+            />
+          </>
+        )}
 
         {/* === Konten Tengah === */}
-        {/* Beri padding-bottom 16 (h-16 dari nav) di mobile */}
-        <main className="flex-1 overflow-y-auto md:pb-0 pb-16">
-          <ContentFeed user={user} />
+        <main className="flex-1 overflow-y-auto md:pb-0 pb-16 relative">
+          {children ? children : <ContentFeed user={user} />}
         </main>
 
-        {/* === ChatBot === */}
-        {/* Note 1: Ukuran w-80 sudah pas (sama dengan sidebar) */}
-        <ChatBot user={user} className="hidden w-80 lg:flex" />
-        <ChatBot
-          user={user}
-          className={`fixed inset-y-0 right-0 z-30 w-80 transform transition-transform lg:hidden ${
-            isChatOpen ? 'translate-x-0' : 'translate-x-full'
-          }`}
-          onClose={() => setIsChatOpen(false)}
-        />
+        {/* === ChatBot (Kondisional) === */}
+        {showChatbot && (
+          <>
+            <ChatBot user={user} className="hidden w-80 lg:flex" />
+            <ChatBot
+              user={user}
+              className={`fixed inset-y-0 right-0 z-30 w-80 transform transition-transform lg:hidden ${
+                isChatOpen ? 'translate-x-0' : 'translate-x-full'
+              }`}
+              onClose={() => setIsChatOpen(false)}
+            />
+          </>
+        )}
       </div>
 
-      {/* === Mobile Nav & FAB === */}
-      {/* Note 2: Tambahkan FAB di sini */}
-      <ChatFab onClick={() => setIsChatOpen(true)} />
-      {/* BottomNav hanya tampil di mobile */}
+      {/* FAB Chatbot (Kondisional) */}
+      {showChatbot && <ChatFab onClick={() => setIsChatOpen(true)} />}
+      
+      {/* Navigasi Bawah selalu tampil untuk navigasi mobile */}
       <BottomNav />
     </div>
   );

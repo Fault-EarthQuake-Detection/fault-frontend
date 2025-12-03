@@ -1,9 +1,9 @@
-// src/components/dashboard/Sidebar.tsx
-
 'use client';
 
+import { useEffect, useState } from 'react';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
-import { LogIn, X } from 'lucide-react';
+import { createClient } from '@/utils/supabase/client';
+import { X, Activity, MapPin, Calendar, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 
 type SidebarProps = {
@@ -12,61 +12,102 @@ type SidebarProps = {
   onClose?: () => void;
 };
 
+type Report = {
+  id: number;
+  status_level: string;
+  fault_type: string;
+  created_at: string;
+};
+
 export default function Sidebar({ user, className = '', onClose }: SidebarProps) {
-  const detectionHistory = [
-    'Riwayat deteksi 1',
-    'Riwayat deteksi 2',
-    'Riwayat deteksi 3',
-  ];
+  const [reports, setReports] = useState<Report[]>([]);
+  const supabase = createClient();
+
+  useEffect(() => {
+    if (user) {
+      const fetchHistory = async () => {
+        // --- PERBAIKAN: Ganti nama tabel jadi JAMAK ('detection_reports') ---
+        const { data, error } = await supabase
+          .from('detection_reports') 
+          .select('id, status_level, fault_type, created_at')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(10);
+        
+        if (error) {
+          console.error("Gagal ambil riwayat:", error);
+        } else if (data) {
+          setReports(data);
+        }
+      };
+      fetchHistory();
+    }
+  }, [user, supabase]);
 
   return (
-    // Note 1: Ubah w-64 menjadi w-80
-    <aside
-      className={`flex w-80 shrink-0 flex-col border-r bg-white p-4 ${className}`}
-    >
-      <div className="flex items-center justify-between pb-2">
-        <h2 className="text-lg font-semibold text-gray-800">
+    <aside className={`flex w-80 shrink-0 flex-col border-r bg-white p-4 ${className}`}>
+      <div className="flex items-center justify-between pb-4 border-b mb-4">
+        <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+          <Activity className="h-5 w-5 text-orange-600" />
           Riwayat Deteksi
         </h2>
         {onClose && (
-          <button
-            onClick={onClose}
-            className="rounded p-1 text-gray-500 hover:bg-gray-100 md:hidden"
-            aria-label="Close Sidebar"
-          >
+          <button onClick={onClose} className="rounded p-1 text-gray-500 hover:bg-gray-100 md:hidden">
             <X className="h-5 w-5" />
           </button>
         )}
       </div>
 
-      {user ? (
-        <nav>
-          <ul>
-            {detectionHistory.map((item, index) => (
-              <li
-                key={index}
-                className="cursor-pointer border-b p-3 text-gray-600 hover:bg-gray-50"
-              >
-                {item}
-              </li>
-            ))}
+      <nav className="flex-1 overflow-y-auto">
+        {reports.length > 0 ? (
+          <ul className="space-y-3">
+            {reports.map((item) => {
+              const status = (item.status_level || "INFO").toUpperCase();
+              let statusColor = "bg-gray-50 text-gray-600 border-gray-200";
+              
+              if (status.includes("BAHAYA") || status.includes("TINGGI")) {
+                statusColor = "bg-red-50 text-red-700 border-red-200";
+              } else if (status.includes("PERINGATAN") || status.includes("WASPADA")) {
+                statusColor = "bg-yellow-50 text-yellow-700 border-yellow-200";
+              } else if (status.includes("AMAN")) {
+                statusColor = "bg-green-50 text-green-700 border-green-200";
+              }
+
+              return (
+                <li key={item.id} className={`p-3 rounded-lg border text-sm ${statusColor}`}>
+                  <div className="flex justify-between items-start mb-1">
+                    <span className="font-bold text-gray-800">{item.fault_type || "Deteksi Sesar"}</span>
+                    {(status.includes("BAHAYA") || status.includes("PERINGATAN")) && <AlertTriangle className="h-4 w-4 shrink-0" />}
+                  </div>
+                  <div className="flex items-center gap-2 text-xs opacity-70 mt-2">
+                    <Calendar className="h-3 w-3" />
+                    {new Date(item.created_at).toLocaleDateString('id-ID')}
+                  </div>
+                  <div className="mt-2 text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-white/50 rounded w-fit">
+                    {item.status_level}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
-        </nav>
-      ) : (
-        <div className="flex flex-1 flex-col items-center justify-center rounded-lg bg-gray-50 p-4 text-center">
-          <LogIn className="h-10 w-10 text-gray-400" />
-          <p className="mt-2 text-sm text-gray-600">
-            Silakan{' '}
-            <Link
-              href="/auth/login"
-              className="font-medium text-blue-600 hover:underline"
-            >
-              login
-            </Link>{' '}
-            untuk melihat riwayat deteksi Anda.
-          </p>
-        </div>
-      )}
+        ) : (
+          <div className="text-center py-10 text-gray-400 text-sm">
+            <p>Belum ada riwayat.</p>
+            <Link href="/dashboard/detection" className="text-blue-600 font-medium hover:underline mt-2 block">
+              Mulai deteksi sekarang
+            </Link>
+          </div>
+        )}
+      </nav>
+      
+      <div className="mt-4 pt-4 border-t">
+        <Link 
+          href="/dashboard/detection" 
+          className="flex items-center justify-center gap-2 w-full rounded-lg bg-gray-900 py-3 text-white font-medium hover:bg-black transition shadow-sm"
+        >
+          <Activity className="h-4 w-4" /> Deteksi Baru
+        </Link>
+      </div>
     </aside>
   );
 }
