@@ -29,9 +29,11 @@ export default function BottomNav() {
         </Link>
         {/* ------------------------------------ */}
 
-        <button className="flex flex-col items-center rounded-full p-3 text-gray-500 hover:bg-gray-100">
-          <Settings className="h-6 w-6" strokeWidth={2.5} />
-        </button>
+        <Link href="/dashboard/settings">
+          <button className="flex flex-col items-center rounded-full p-3 text-gray-500 hover:bg-gray-100 hover:text-orange-500 transition">
+            <Settings className="h-6 w-6" strokeWidth={2.5} />
+          </button>
+        </Link>
       </nav>
     </div>
   );
