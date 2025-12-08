@@ -15,7 +15,7 @@ export default function ChatFab({ onClick }: ChatFabProps) {
       className="
         fixed bottom-20 right-4 z-20 // 16px dari kanan, 80px dari bawah
         flex h-16 w-16 items-center justify-center 
-        rounded-full bg-orange-800 text-white 
+        rounded-full bg-white text-gray-500 border border-black hover:bg-gray-300 hover:text-orange-500
         shadow-lg md:hidden // Sembunyikan di desktop
       "
       aria-label="Open Chatbot"

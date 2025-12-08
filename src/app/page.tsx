@@ -3,6 +3,19 @@ export const dynamic = 'force-dynamic';
 import { createClient } from '@/utils/supabase/server';
 import DashboardLayout from './components/dashboard/DashBoardLayout';
 import LandingPage from '@/components/landing/LandingPage';// Impor komponen baru
+import { Metadata } from 'next';
+
+const imageMetadata = {
+  icons: {
+    icon: "/asset/logo_geovalid.png",
+  },
+};
+
+export const metadata: Metadata = {
+  title: "Home",
+  description: "Aplikasi Validasi Data Geospasial untuk Deteksi Retakan pada Tebing dan Batuan",
+  icons: imageMetadata.icons,
+};
 
 export default async function HomePage() {
   const supabase = await createClient();

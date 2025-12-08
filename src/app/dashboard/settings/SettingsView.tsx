@@ -14,7 +14,7 @@ import {
   ArrowLeft,
   Loader2,
   Eye,
-  EyeOff, // Import Icon Mata
+  EyeOff,
 } from "lucide-react";
 import Image from "next/image";
 import { createClient } from "@/utils/supabase/client";
@@ -30,13 +30,50 @@ type UserData = {
 // URL Backend
 const DB_API_URL = "http://localhost:3000/api";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// --- KOMPONEN INPUT PASSWORD (DIPINDAHKAN KE LUAR) ---
+// Agar tidak re-render/hilang fokus saat mengetik
+const PasswordInput = ({
+  label,
+  value,
+  onChange,
+  show,
+  setShow,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (val: string) => void;
+  show: boolean;
+  setShow: (val: boolean) => void;
+  placeholder: string;
+}) => (
+  <div className="space-y-2">
+    <label className="text-sm font-semibold text-gray-700">{label}</label>
+    <div className="relative">
+      <input
+        type={show ? "text" : "password"}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full border p-3 pr-10 rounded-lg outline-none focus:border-blue-500 transition"
+        placeholder={placeholder}
+      />
+      <button
+        type="button"
+        onClick={() => setShow(!show)}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+      >
+        {show ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+      </button>
+    </div>
+  </div>
+);
+
+
 export default function SettingsView({ initialUser }: { initialUser: any }) {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   // Deteksi Provider Login (Google / Email)
-  // Supabase menyimpan info provider di app_metadata.provider
   const isGoogleUser = initialUser?.app_metadata?.provider === "google";
 
   const [user, setUser] = useState<UserData>({
@@ -56,7 +93,9 @@ export default function SettingsView({ initialUser }: { initialUser: any }) {
     router.refresh();
   };
 
-  // 1. EDIT PROFIL (Sama seperti sebelumnya)
+  // --- SUB COMPONENTS (Logic Only) ---
+
+  // 1. EDIT PROFIL
   const EditProfile = () => {
     const [name, setName] = useState(user.username);
     const [imgFile, setImgFile] = useState<File | null>(null);
@@ -73,35 +112,24 @@ export default function SettingsView({ initialUser }: { initialUser: any }) {
 
         let finalAvatarUrl = user.avatar_url;
 
-        // Upload ke bucket 'avatar-profile'
-        // ... di dalam handleSaveProfile ...
+        // Upload Foto jika ada yang baru
         if (imgFile) {
           const fileName = `${user.id}-${Date.now()}.png`;
 
-          // Debugging Log
-          console.log("Mulai upload ke avatar-profile:", fileName);
-
-          const { data, error: upErr } = await supabase.storage
+          const { error: upErr } = await supabase.storage
             .from("avatar-profile")
-            .upload(fileName, imgFile, {
-              upsert: true, // Tambahkan ini agar bisa menimpa file lama
-            });
+            .upload(fileName, imgFile, { upsert: true });
 
-          if (upErr) {
-            console.error("Supabase Storage Error:", upErr); // Lihat ini di console
-            throw new Error("Gagal upload ke Storage: " + upErr.message);
-          }
+          if (upErr) throw upErr;
 
           const { data: urlData } = supabase.storage
             .from("avatar-profile")
             .getPublicUrl(fileName);
 
           finalAvatarUrl = urlData.publicUrl;
-          console.log("Upload sukses, URL:", finalAvatarUrl);
         }
-        // ...
 
-        // Kirim ke Backend (PUT /profile)
+        // Kirim ke Backend
         const res = await fetch(`${DB_API_URL}/profile`, {
           method: "PUT",
           headers: {
@@ -113,12 +141,13 @@ export default function SettingsView({ initialUser }: { initialUser: any }) {
 
         if (!res.ok) throw new Error("Gagal update profil");
 
-        // Use upsert response logic if backend returns updated user
         setUser((prev) => ({
           ...prev,
           username: name,
           avatar_url: finalAvatarUrl || "",
         }));
+        
+        router.refresh(); 
         alert("Profil berhasil diperbarui!");
         setActiveMenu(null);
       } catch (e: any) {
@@ -129,7 +158,7 @@ export default function SettingsView({ initialUser }: { initialUser: any }) {
     };
 
     return (
-      <div className="space-y-6 animate-fade-in">
+      <div className="space-y-6 animate-fade-in relative z-30">
         <div className="flex flex-col items-center gap-4">
           <div
             className="relative group cursor-pointer"
@@ -168,9 +197,7 @@ export default function SettingsView({ initialUser }: { initialUser: any }) {
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-semibold text-gray-700">
-            Username
-          </label>
+          <label className="text-sm font-semibold text-gray-700">Username</label>
           <input
             type="text"
             value={name}
@@ -180,6 +207,7 @@ export default function SettingsView({ initialUser }: { initialUser: any }) {
         </div>
 
         <button
+          type="button"
           onClick={handleSaveProfile}
           disabled={loading}
           className="w-full bg-orange-700 text-white py-3 rounded-lg font-bold hover:bg-orange-800 transition flex justify-center items-center gap-2"
@@ -196,13 +224,12 @@ export default function SettingsView({ initialUser }: { initialUser: any }) {
     );
   };
 
-  // 2. GANTI PASSWORD (DIPERBARUI)
+  // 2. GANTI PASSWORD
   const ChangePassword = () => {
     const [oldPass, setOldPass] = useState("");
     const [newPass, setNewPass] = useState("");
     const [confirm, setConfirm] = useState("");
 
-    // State untuk toggle visibility
     const [showOld, setShowOld] = useState(false);
     const [showNew, setShowNew] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
@@ -221,7 +248,6 @@ export default function SettingsView({ initialUser }: { initialUser: any }) {
         } = await supabase.auth.getSession();
         if (!session) throw new Error("Sesi habis");
 
-        // Panggil Endpoint Backend Baru
         const res = await fetch(`${DB_API_URL}/change-password`, {
           method: "PUT",
           headers: {
@@ -241,7 +267,7 @@ export default function SettingsView({ initialUser }: { initialUser: any }) {
         }
 
         alert("Password berhasil diganti! Silakan login ulang.");
-        await handleLogout(); // Auto logout agar user login pakai password baru
+        await handleLogout();
       } catch (e: any) {
         alert(e.message);
       } finally {
@@ -249,41 +275,8 @@ export default function SettingsView({ initialUser }: { initialUser: any }) {
       }
     };
 
-    // Helper Input dengan Icon Mata
-    const PasswordInput = ({
-      label,
-      value,
-      onChange,
-      show,
-      setShow,
-      placeholder,
-    }: any) => (
-      <div className="space-y-2">
-        <label className="text-sm font-semibold text-gray-700">{label}</label>
-        <div className="relative">
-          <input
-            type={show ? "text" : "password"}
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            className="w-full border p-3 pr-10 rounded-lg outline-none focus:border-blue-500 transition"
-            placeholder={placeholder}
-          />
-          <button
-            onClick={() => setShow(!show)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-          >
-            {show ? (
-              <EyeOff className="h-5 w-5" />
-            ) : (
-              <Eye className="h-5 w-5" />
-            )}
-          </button>
-        </div>
-      </div>
-    );
-
     return (
-      <div className="space-y-5 animate-fade-in">
+      <div className="space-y-5 animate-fade-in relative z-30">
         <PasswordInput
           label="Password Lama"
           value={oldPass}
@@ -311,6 +304,7 @@ export default function SettingsView({ initialUser }: { initialUser: any }) {
         />
 
         <button
+          type="button"
           onClick={handleUpdatePass}
           disabled={loading}
           className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition flex justify-center items-center gap-2"
@@ -321,7 +315,7 @@ export default function SettingsView({ initialUser }: { initialUser: any }) {
     );
   };
 
-  // 3. SARAN DAN KRITIK (Sama seperti sebelumnya)
+  // 3. SARAN DAN KRITIK
   const FeedbackForm = () => {
     const [content, setContent] = useState("");
 
@@ -354,7 +348,7 @@ export default function SettingsView({ initialUser }: { initialUser: any }) {
     };
 
     return (
-      <div className="space-y-4 animate-fade-in">
+      <div className="space-y-4 animate-fade-in relative z-30">
         <p className="text-sm text-gray-600">
           Masukan Anda sangat berarti untuk pengembangan GeoValid.
         </p>
@@ -366,6 +360,7 @@ export default function SettingsView({ initialUser }: { initialUser: any }) {
           placeholder="Tulis saran atau kritik Anda di sini..."
         />
         <button
+          type="button"
           onClick={sendFeedback}
           disabled={loading}
           className="w-full bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700 transition"
@@ -376,9 +371,9 @@ export default function SettingsView({ initialUser }: { initialUser: any }) {
     );
   };
 
-  // 4. TENTANG APLIKASI (Sama seperti sebelumnya)
+  // 4. TENTANG APLIKASI
   const AboutApp = () => (
-    <div className="space-y-4 animate-fade-in text-center py-6">
+    <div className="space-y-4 animate-fade-in text-center py-6 relative z-30">
       <Image
         src="/logo_geovalid.png"
         alt="Logo"
@@ -390,8 +385,8 @@ export default function SettingsView({ initialUser }: { initialUser: any }) {
       <p className="text-sm text-gray-500">Versi 1.0.0 (Beta)</p>
       <div className="text-sm text-gray-600 text-left bg-gray-50 p-4 rounded-lg border mt-4">
         <p className="mb-2">
-          Aplikasi ini dikembangkan untuk membantu masyarakat dalam mendeteksi
-          dan memvalidasi jalur sesar aktif menggunakan teknologi AI dan data
+          Aplikasi ini dikembangkan untuk membantu masyarakat dalam mendeteksi dan
+          memvalidasi jalur sesar aktif menggunakan teknologi AI dan data
           Geospasial ESDM.
         </p>
         <p>© 2025 GeoValid Team.</p>
@@ -399,9 +394,8 @@ export default function SettingsView({ initialUser }: { initialUser: any }) {
     </div>
   );
 
-  // --- RENDER UTAMA ---
+  // --- MAIN RENDER ---
 
-  // Jika Submenu Aktif
   if (activeMenu) {
     let title = "";
     let Component = null;
@@ -426,8 +420,9 @@ export default function SettingsView({ initialUser }: { initialUser: any }) {
     }
 
     return (
-      <div className="max-w-md mx-auto p-4">
+      <div className="max-w-md mx-auto p-4 relative z-30">
         <button
+          type="button"
           onClick={() => setActiveMenu(null)}
           className="flex items-center gap-2 text-gray-600 mb-6 hover:bg-gray-100 p-2 rounded-lg w-fit transition"
         >
@@ -443,8 +438,8 @@ export default function SettingsView({ initialUser }: { initialUser: any }) {
 
   // Tampilan Menu Utama
   return (
-    <div className="max-w-xl mx-auto p-6 space-y-8">
-      {/* Header Profil */}
+    <div className="max-w-xl mx-auto p-6 space-y-8 relative z-30">
+      {/* Header Profil Singkat */}
       <div className="flex items-center gap-4 p-4 bg-white border rounded-xl shadow-sm">
         <div className="h-16 w-16 rounded-full bg-gray-200 overflow-hidden relative">
           {user.avatar_url ? (
@@ -469,9 +464,10 @@ export default function SettingsView({ initialUser }: { initialUser: any }) {
         </div>
       </div>
 
-      {/* List Menu */}
+      {/* Menu List */}
       <div className="space-y-3">
         <button
+          type="button"
           onClick={() => setActiveMenu("profile")}
           className="w-full flex items-center justify-between p-4 bg-white border rounded-xl hover:bg-gray-50 transition shadow-sm group"
         >
@@ -484,9 +480,9 @@ export default function SettingsView({ initialUser }: { initialUser: any }) {
           <ChevronRight className="h-5 w-5 text-gray-400" />
         </button>
 
-        {/* LOGIKA: HANYA TAMPIL JIKA BUKAN GOOGLE USER */}
         {!isGoogleUser && (
           <button
+            type="button"
             onClick={() => setActiveMenu("password")}
             className="w-full flex items-center justify-between p-4 bg-white border rounded-xl hover:bg-gray-50 transition shadow-sm group"
           >
@@ -501,6 +497,7 @@ export default function SettingsView({ initialUser }: { initialUser: any }) {
         )}
 
         <button
+          type="button"
           onClick={() => setActiveMenu("about")}
           className="w-full flex items-center justify-between p-4 bg-white border rounded-xl hover:bg-gray-50 transition shadow-sm group"
         >
@@ -514,6 +511,7 @@ export default function SettingsView({ initialUser }: { initialUser: any }) {
         </button>
 
         <button
+          type="button"
           onClick={() => setActiveMenu("feedback")}
           className="w-full flex items-center justify-between p-4 bg-white border rounded-xl hover:bg-gray-50 transition shadow-sm group"
         >
@@ -526,17 +524,20 @@ export default function SettingsView({ initialUser }: { initialUser: any }) {
           <ChevronRight className="h-5 w-5 text-gray-400" />
         </button>
 
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center justify-between p-4 bg-white border border-red-100 rounded-xl hover:bg-red-50 transition shadow-sm group mt-6"
-        >
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-red-100 text-red-600 rounded-lg group-hover:bg-red-200 transition">
-              <LogOut className="h-5 w-5" />
+        <div className="mt-6">
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="w-full flex items-center justify-between p-4 bg-white border border-red-100 rounded-xl hover:bg-red-50 transition shadow-sm group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-red-100 text-red-600 rounded-lg group-hover:bg-red-200 transition">
+                <LogOut className="h-5 w-5" />
+              </div>
+              <span className="font-medium text-red-600">Keluar</span>
             </div>
-            <span className="font-medium text-red-600">Keluar</span>
-          </div>
-        </button>
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -43,16 +43,18 @@ export default function Header({ user, onToggleSidebar }: HeaderProps) {
         >
           <Menu className="h-6 w-6" />
         </button>
-       
-        <Link href="/dashboard" className="flex items-center gap-2">
+      </div>
+
+      <div className="flex flex-1 justify-center md:justify-start">
+        <Link href="/dashboard" className="flex items-center h-screen gap-2">
           <Image 
-            src="/logo_geovalid.png" 
+            src="/asset/logo_geovalid.png" 
             alt="Logo" 
             width={40} 
             height={40} 
             className="h-10 w-10 object-contain"
           />
-          <span className="text-xl font-black tracking-wide uppercase text-gray-800 hidden sm:block">
+          <span className="text-xl font-black tracking-wide uppercase text-gray-800 sm:block">
             GEOVALID
           </span>
         </Link>

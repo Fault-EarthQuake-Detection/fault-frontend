@@ -12,9 +12,16 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const imageMetadata = {
+  icons: {
+    icon: "/asset/logo_geovalid.png",
+  },
+};
+
 export const metadata: Metadata = {
   title: "Geovalid",
   description: "Aplikasi Validasi Data Geospasial untuk Deteksi Retakan pada Tebing dan Batuan",
+  icons: imageMetadata.icons,
 };
 
 export default function RootLayout({

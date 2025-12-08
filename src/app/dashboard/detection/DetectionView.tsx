@@ -468,7 +468,7 @@ export default function DetectionView() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-4xl p-4 md:p-6 pb-24">
+    <div className="mx-auto w-full max-w-4xl p-4 md:p-6 pb-24 relative z-30">
       <div className="flex items-center justify-center mb-8 gap-2">
         {[1, 2, 3].map((i) => (<div key={i} className={`h-2 w-16 rounded-full transition-all ${step >= i ? 'bg-gray-900' : 'bg-gray-200'}`} />))}
       </div>

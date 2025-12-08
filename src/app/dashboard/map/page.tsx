@@ -4,6 +4,19 @@ import { createClient } from '@/utils/supabase/server';
 import DashboardLayout from '@/app/components/dashboard/DashBoardLayout';
 import HistoryMapWrapper from '@/app/components/dashboard/HistoryMapWrapper'; 
 import { redirect } from 'next/navigation';
+import { Metadata } from 'next';
+
+const imageMetadata = {
+  icons: {
+    icon: "/asset/logo_geovalid.png",
+  },
+};
+
+export const metadata: Metadata = {
+  title: "Maps",
+  description: "Aplikasi Validasi Data Geospasial untuk Deteksi Retakan pada Tebing dan Batuan",
+  icons: imageMetadata.icons,
+};
 
 export default async function MapPage() {
   const supabase = await createClient();
@@ -23,7 +36,7 @@ export default async function MapPage() {
 
   return (
     <DashboardLayout user={user} showSidebar={false} showChatbot={false}>
-      <div className="flex h-full w-full flex-col relative">
+      <div className="flex h-full w-full flex-col relative z-30">
         
         {/* Overlay Legenda (Tetap Sama) */}
         <div className="absolute bottom-24 left-4 z-[400] bg-white/95 backdrop-blur-sm p-3 rounded-lg shadow-lg border border-gray-200 max-w-xs transition-all hover:scale-105">
