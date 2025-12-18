@@ -103,7 +103,7 @@ export default function Sidebar({
               return (
                 <li
                   key={item.id}
-                  className={`p-3 rounded-lg border text-sm ${statusColor}`}
+                  className={`p-3 rounded-lg border text-sm  ${statusColor}`}
                 >
                   <div className="flex justify-between items-start mb-1">
                     <span className="font-bold text-gray-800">

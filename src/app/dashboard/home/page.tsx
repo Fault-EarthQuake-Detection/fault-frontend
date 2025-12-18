@@ -1,10 +1,8 @@
-export const dynamic = 'force-dynamic';
+import DashboardLayout from "@/app/components/dashboard/DashBoardLayout";
+import LandingPage from "@/components/landing/LandingPage";
+import { createClient } from "@/utils/supabase/server";
+import { Metadata } from "next";
 
-import { createClient } from '@/utils/supabase/server';
-// import DashboardLayout from './components/dashboard/DashBoardLayout';
-import LandingPage from '@/components/landing/LandingPage';// Impor komponen baru
-import { Metadata } from 'next';
-import { redirect } from 'next/navigation';
 
 const imageMetadata = {
   icons: {
@@ -13,12 +11,12 @@ const imageMetadata = {
 };
 
 export const metadata: Metadata = {
-  title: "Geovalid",
+  title: "Home",
   description: "Aplikasi Validasi Data Geospasial untuk Deteksi Retakan pada Tebing dan Batuan",
   icons: imageMetadata.icons,
 };
 
-export default async function Landing() {
+export default async function HomePage() {
   const supabase = await createClient(); 
   const {
     data: { user },
@@ -27,7 +25,7 @@ export default async function Landing() {
   // LOGIKA TAMPILAN:
   // 1. Jika user sudah login, langsung masuk ke Dashboard.
   if (user) {
-    redirect("/dashboard/home");
+    return <DashboardLayout user={user} />;
   }
 
   // 2. Jika user belum login, tampilkan Slide/Landing Page terlebih dahulu.

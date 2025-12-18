@@ -249,7 +249,7 @@ export default function ContentFeed({ user }: ContentFeedProps) {
   }, [user, supabase]);
 
   return (
-    <div className="mx-auto w-full max-w-3xl p-4 md:p-6 pb-24">
+    <div className="mx-auto w-full max-w-3xl p-4 md:p-6 pb-24 relative z-30">
       <DetectionModal item={selectedDetection} onClose={() => setSelectedDetection(null)} />
 
       <h2 className="text-xl font-extrabold text-gray-900 mb-6 flex items-center gap-3">
