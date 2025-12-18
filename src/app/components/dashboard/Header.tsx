@@ -33,7 +33,7 @@ export default function Header({ user, onToggleSidebar }: HeaderProps) {
   }, [menuRef]);
 
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between border-b bg-white p-4 shadow-sm z-20 relative">
+    <header className="flex h-16 shrink-0 items-center justify-between border-b bg-white p-4 shadow-sm relative">
       {/* Bagian Kiri: Toggle Sidebar & Logo */}
       <div className="flex items-center gap-3">
         <button
@@ -70,7 +70,7 @@ export default function Header({ user, onToggleSidebar }: HeaderProps) {
             </span>
 
             {/* Dropdown Profil */}
-            <div className="relative" ref={menuRef}>
+            <div className="relative z-40 md:z-50" ref={menuRef}>
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 className="flex items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition"

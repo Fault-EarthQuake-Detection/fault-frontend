@@ -6,7 +6,7 @@ import Link from 'next/link';
 
 export default function BottomNav() {
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 p-4 pointer-events-none">
+    <div className="fixed bottom-0 left-0 right-0 z-40 p-4 pointer-events-none">
       <nav className="mx-auto flex w-full max-w-xs items-center justify-around rounded-full bg-white p-2 shadow-lg ring-1 ring-black ring-opacity-5 pointer-events-auto">
         
         <Link href="/dashboard/home">

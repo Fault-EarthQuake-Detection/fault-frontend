@@ -38,7 +38,7 @@ export default function DashboardLayout({
       {/* Overlay */}
       {(isSidebarOpen || isChatOpen) && (
         <div
-          className="fixed inset-0 z-20 bg-black/50 md:hidden"
+          className="fixed inset-0 z-10 bg-black/50 md:hidden"
           onClick={() => {
             setIsSidebarOpen(false);
             setIsChatOpen(false);

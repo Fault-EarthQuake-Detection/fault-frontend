@@ -13,7 +13,7 @@ type ChatBotProps = {
 export default function ChatBot({ user, className = '', onClose }: ChatBotProps) {
   return (
     <aside
-      className={`flex w-80 shrink-0 flex-col border-l bg-white ${className}`}
+      className={`flex w-80 shrink-0 flex-col border-l bg-white z-50 md:z-40 ${className}`}
     >
       {/* Header Chatbot */}
       <div className="flex h-16 shrink-0 items-center justify-between border-b p-4 text-center">

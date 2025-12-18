@@ -63,7 +63,7 @@ export default function Sidebar({
 
   return (
     <aside
-      className={`flex w-80 shrink-0 flex-col border-r bg-white p-4 ${className}`}
+      className={`flex w-80 shrink-0 flex-col border-r bg-white p-4 z-50 ${className}`}
     >
       {/* Header Sidebar */}
       <div className="flex items-center justify-between pb-4 border-b mb-4">
