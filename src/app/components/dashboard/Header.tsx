@@ -98,7 +98,7 @@ export default function Header({ user, onToggleSidebar }: HeaderProps) {
             height={32} 
             className="object-contain transition-transform group-hover:scale-110"
           />
-          <span className="text-lg font-black tracking-wide uppercase text-gray-800 hidden sm:block">
+          <span className="text-lg font-black tracking-wide uppercase text-gray-800 sm:block">
             GEO<span className="text-orange-600">VALID</span>
           </span>
         </Link>

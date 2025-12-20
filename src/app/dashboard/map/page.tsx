@@ -41,7 +41,7 @@ export default async function MapPage() {
       <div className="flex h-full w-full flex-col relative z-30">
         
         {/* Overlay Legenda (Tetap Sama) */}
-        <div className="absolute bottom-24 left-4 z-[400] bg-white/95 backdrop-blur-sm p-3 rounded-lg shadow-lg border border-gray-200 max-w-xs transition-all hover:scale-105">
+        <div className="absolute bottom-7 left-4 z-[400] bg-white/95 backdrop-blur-sm p-3 rounded-lg shadow-lg border border-gray-200 max-w-xs transition-all hover:scale-105">
           <h1 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 border-b pb-1">Legenda</h1>
           <div className="flex flex-col gap-2 text-xs text-gray-700 font-medium">
              <span className="flex items-center gap-2">

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
+// Hapus import Image dari next/image untuk menghindari bug performance stamp
+// import Image from "next/image"; 
 
 export default function GlobalLoading({ 
   isLoading = true 
@@ -13,20 +14,21 @@ export default function GlobalLoading({
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    // Gunakan setTimeout biasa, hindari performance.now() untuk sementara di dev mode Next 16
-    const MINIMUM_TIME = 2500; 
     let isMounted = true;
+    const MINIMUM_TIME = 2000; // Durasi minimal tampil (ms)
 
+    // 1. Timer untuk memastikan loading tampil minimal 2 detik
     const timer = setTimeout(() => {
       if (!isMounted) return;
       
-      // Jika parent sudah selesai loading (atau default behavior)
+      // Jika dari parent sudah selesai loading (atau jika komponen ini dipakai di loading.tsx otomatis)
+      // Kita jalankan animasi selesai
       if (!isLoading) {
          finishLoading();
       }
     }, MINIMUM_TIME);
 
-    // Animasi Progress Bar
+    // 2. Animasi Progress Bar (Jalan terus sampai 90%)
     const interval = setInterval(() => {
       setProgress((old) => {
         if (old >= 90) return old;
@@ -34,23 +36,28 @@ export default function GlobalLoading({
       });
     }, 300);
 
+    // Fungsi untuk mengakhiri loading dengan mulus
     const finishLoading = () => {
+      if (!isMounted) return;
       setProgress(100);
+      
+      // Tunggu progress bar penuh, lalu fade out
       setTimeout(() => {
         if(!isMounted) return;
         setIsFadingOut(true);
+        
+        // Hapus dari DOM setelah animasi fade out selesai
         setTimeout(() => {
             if(!isMounted) return;
             setShouldRender(false);
-        }, 500);
-      }, 300);
+        }, 500); // Sesuai durasi transition-opacity
+      }, 200);
     };
 
-    // Watcher: Jika isLoading prop berubah jadi false dari parent lebih cepat dari timer
-    if (!isLoading && progress > 50) { 
-        // Opsional: Langsung selesaikan jika sudah setengah jalan
-        // Tapi kita biarkan timer MINIMUM_TIME menang agar tidak kedip
-    }
+    // Watcher: Jika props isLoading berubah jadi false sebelum timer selesai,
+    // kita biarkan timer yang nanti akan memanggil finishLoading() agar tidak terlalu cepat hilang.
+    // Namun, jika timer sudah lewat dan props berubah, kita bisa tambahkan logika force finish disini jika perlu.
+    // Untuk saat ini, logika timer di atas sudah cukup aman menangani kedua kasus.
 
     return () => {
       isMounted = false;
@@ -75,12 +82,12 @@ export default function GlobalLoading({
       <div className="relative z-10 flex flex-col items-center">
         {/* LOGO */}
         <div className="relative mb-8 h-24 w-24">
-            <Image 
+            {/* SOLUSI EROR: Gunakan tag <img> biasa, bukan <Image /> */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img 
                 src="/asset/logo_geovalid.png" 
                 alt="Loading" 
-                fill
-                className="object-contain animate-pulse"
-                priority
+                className="object-contain animate-pulse w-full h-full"
             />
         </div>
 

@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation"; // Import Router untuk redirect
 import { 
   Shield, CheckCircle2, XCircle, Trash2, 
   User, LayoutGrid, Users, Loader2, MapPin, Calendar, 
-  Image as ImageIcon, Eye, Layers, Maximize2, ExternalLink, X
+  Image as ImageIcon, Eye, Layers, Maximize2, ExternalLink, X,
+  ArrowLeft // <-- TAMBAHKAN ICON ARROW LEFT
 } from "lucide-react";
 import Image from "next/image";
 
@@ -344,18 +345,29 @@ export default function AdminDashboard() {
         )}
 
         {/* Header dan Tab Switcher */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-                <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight flex items-center gap-3">
-                    <Shield className="h-8 w-8 text-orange-600" fill="currentColor" fillOpacity={0.1} />
-                    Admin Console
-                </h1>
-                <p className="text-gray-500 mt-2 text-sm md:text-base">
-                    Pusat kontrol untuk validasi data geospasial & manajemen pengguna.
-                </p>
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+            <div className="flex items-start gap-4">
+                {/* TOMBOL KEMBALI KE HOME */}
+                <button 
+                    onClick={() => router.push('/dashboard/home')}
+                    className="mt-1 p-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:text-orange-600 hover:border-orange-200 transition-all shadow-sm"
+                    title="Kembali ke Dashboard"
+                >
+                    <ArrowLeft className="h-6 w-6" />
+                </button>
+
+                <div>
+                    <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight flex items-center gap-3">
+                        <Shield className="h-8 w-8 text-orange-600" fill="currentColor" fillOpacity={0.1} />
+                        Admin Console
+                    </h1>
+                    <p className="text-gray-500 mt-2 text-sm md:text-base">
+                        Pusat kontrol untuk validasi data geospasial & manajemen pengguna.
+                    </p>
+                </div>
             </div>
             
-            <div className="bg-white p-1 rounded-xl shadow-sm border border-gray-200 inline-flex">
+            <div className="bg-white p-1 rounded-xl shadow-sm border border-gray-200 inline-flex self-start md:self-center">
                 <button 
                     onClick={() => setActiveTab('validations')}
                     className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${

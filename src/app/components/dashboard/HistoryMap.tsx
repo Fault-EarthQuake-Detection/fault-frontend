@@ -165,7 +165,7 @@ export default function HistoryMap({ detections }: HistoryMapProps) {
         zoomControl={false}
       >
         {/* Layer Controls (Posisi: Kanan Atas) */}
-        <LayersControl position="topright">
+        <LayersControl position="bottomright">
           <LayersControl.BaseLayer checked name="Peta Jalan (OSM)">
             <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
           </LayersControl.BaseLayer>
