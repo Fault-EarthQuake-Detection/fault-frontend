@@ -272,6 +272,7 @@ export default function DetectionView() {
         imageUrl: imageUrl,
         originalImageUrl: imageUrl,
         overlayImageUrl: predictData.images_base64?.overlay || "",
+        maskImageUrl: predictData.images_base64?.mask || "",
         detectionResult:
           predictData.fault_analysis?.deskripsi_singkat ||
           "Tidak Teridentifikasi",

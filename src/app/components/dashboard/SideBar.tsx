@@ -10,6 +10,7 @@ import {
   Calendar,
   AlertTriangle,
   Settings,
+  Shield,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -140,6 +141,7 @@ export default function Sidebar({
 
       {/* Footer Sidebar (Aksi) */}
       <div className="mt-4 pt-4 border-t space-y-2">
+        
         {/* Link Deteksi Baru */}
         <Link
           href="/dashboard/detection"
@@ -147,7 +149,6 @@ export default function Sidebar({
         >
           <Activity className="h-4 w-4" /> Deteksi Baru
         </Link>
-
         {/* Link Pengaturan */}
         <Link
           href="/dashboard/settings"

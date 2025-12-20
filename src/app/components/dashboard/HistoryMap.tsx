@@ -85,7 +85,7 @@ function MapControls() {
   // --- PERUBAHAN POSISI: leaflet-top leaflet-left ---
   // Pindah ke Kiri Atas agar Kanan Atas eksklusif untuk Layer Control
   return (
-    <div className="leaflet-top leaflet-left" style={{ pointerEvents: 'auto', marginTop: '10px', marginLeft: '10px' }}>
+    <div className="leaflet-top leaflet-left " style={{ pointerEvents: 'auto', marginTop: '10px', marginLeft: '10px' }}>
       <div className="leaflet-control flex flex-col gap-2 items-start">
         
         {/* Search Bar */}
@@ -157,7 +157,7 @@ export default function HistoryMap({ detections }: HistoryMapProps) {
   const geoJsonStyle = { color: '#ef4444', weight: 3, opacity: 0.6 };
 
   return (
-    <div className="h-full w-full z-0 relative">
+    <div className="h-full w-full z-20 relative">
       <MapContainer 
         center={defaultCenter} 
         zoom={5} 

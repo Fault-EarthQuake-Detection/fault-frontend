@@ -30,9 +30,11 @@ export default async function MapPage() {
   const { data: detections } = await supabase
     .from('detection_reports')
     .select('id, latitude, longitude, original_image_url, status_level, fault_type, created_at, user_id')
-    .or(`user_id.eq.${user.id},status_level.neq.AMAN`) 
+    // LOGIKA FILTER BARU:
+    // Tampilkan jika: (Milik Saya) ATAU (Sudah Divalidasi Admin)
+    .or(`user_id.eq.${user.id},is_validated.eq.true`) 
     .order('created_at', { ascending: false })
-    .limit(1000); // Batasi agar peta tidak terlalu berat jika data ribuan
+    .limit(1000);
 
   return (
     <DashboardLayout user={user} showSidebar={false} showChatbot={false}>
