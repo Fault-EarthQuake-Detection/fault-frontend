@@ -13,7 +13,7 @@ import Image from "next/image";
 
 
 // Pastikan URL API Backend benar
-const API_URL = "http://localhost:3000/api"; 
+const API_URL = "https://fault-dbservice.vercel.app/api"; 
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<'validations' | 'users'>('validations');

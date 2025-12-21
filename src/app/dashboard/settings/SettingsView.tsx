@@ -28,7 +28,7 @@ type UserData = {
 };
 
 // URL Backend
-const DB_API_URL = "http://localhost:3000/api";
+const DB_API_URL = "https://fault-dbservice.vercel.app/api";
 
 // --- KOMPONEN INPUT PASSWORD (DIPINDAHKAN KE LUAR) ---
 // Agar tidak re-render/hilang fokus saat mengetik

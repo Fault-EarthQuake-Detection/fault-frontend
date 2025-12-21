@@ -14,7 +14,7 @@ type HeaderProps = {
 };
 
 // Pastikan ini mengarah ke Backend Express Anda
-const DB_API_URL = "http://localhost:3000/api";
+const DB_API_URL = "https://fault-dbservice.vercel.app/api";
 
 export default function Header({ user, onToggleSidebar }: HeaderProps) {
   // State untuk data Real-time dari Database

@@ -26,7 +26,7 @@ export default function LoginForm() {
       return;
     }
     try {
-      const res = await fetch('http://localhost:3000/auth/signup', {
+      const res = await fetch('https://fault-dbservice.vercel.app/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, username, password }),
@@ -45,7 +45,7 @@ export default function LoginForm() {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch('http://localhost:3000/auth/login', {
+      const res = await fetch('https://fault-dbservice.vercel.app/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),

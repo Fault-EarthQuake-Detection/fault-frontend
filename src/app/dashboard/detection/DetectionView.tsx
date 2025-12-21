@@ -67,7 +67,7 @@ export default function DetectionView() {
   const supabase = createClient();
 
   const AI_API_URL = "https://fikalalif-fault-detection-api.hf.space";
-  const DB_API_URL = "http://localhost:3000/api";
+  const DB_API_URL = "https://fault-dbservice.vercel.app/api";
 
   useEffect(() => {
     // Gunakan timer agar tidak spam API setiap ketik 1 huruf (Debounce 500ms)
