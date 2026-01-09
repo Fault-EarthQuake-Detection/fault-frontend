@@ -1,239 +1,322 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import { MapContainer, TileLayer, Marker, Popup, useMap, GeoJSON, LayersControl } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, GeoJSON, LayersControl, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
-import { Search, Crosshair } from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
+import { Search, Crosshair, CheckCircle2, AlertTriangle, Ruler, FileText, Loader2, MapPin } from 'lucide-react';
+import type { Detection } from './HistoryMapWrapper';
 
-// --- SETUP ICON ---
-const createCustomIcon = (color: string) => {
-  const svgIcon = `
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${color}" stroke="black" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather feather-map-pin">
-    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-    <circle cx="12" cy="10" r="3"></circle>
-  </svg>`;
-  return L.divIcon({ className: 'custom-icon', html: svgIcon, iconSize: [30, 30], iconAnchor: [15, 30], popupAnchor: [0, -30] });
+// --- CUSTOM ICONS (Sama seperti sebelumnya) ---
+const createCustomIcon = (type: 'verified' | 'unverified') => {
+  const color = type === 'verified' ? '#10b981' : '#ef4444';
+  const iconHtml = `
+    <div style="position: relative; width: 36px; height: 36px; filter: drop-shadow(0 4px 3px rgb(0 0 0 / 0.07));">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${color}" stroke="${type === 'verified' ? '#064e3b' : '#7f1d1d'}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+        <circle cx="12" cy="10" r="3" fill="white"></circle>
+      </svg>
+      <div style="position: absolute; top: -2px; right: -2px; background: white; border-radius: 50%; padding: 1px;">
+        ${type === 'verified'
+          ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="#10b981" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>'
+          : '<svg width="14" height="14" viewBox="0 0 24 24" fill="#f59e0b" stroke="white" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>'
+        }
+      </div>
+    </div>`;
+  return L.divIcon({ className: 'custom-map-icon', html: iconHtml, iconSize: [36, 36], iconAnchor: [18, 36], popupAnchor: [0, -36] });
 };
 
-const Icons = {
-  red: createCustomIcon('#ef4444'),
-  yellow: createCustomIcon('#eab308'),
-  green: createCustomIcon('#22c55e'),
+const Icons = { verified: createCustomIcon('verified'), unverified: createCustomIcon('unverified') };
+
+// --- TYPE FOR SUGGESTION ---
+type Suggestion = {
+  place_id: number;
+  display_name: string;
+  lat: string;
+  lon: string;
 };
 
-type Detection = {
-  id: number;
-  latitude: number;
-  longitude: number;
-  original_image_url: string;
-  status_level: string;
-  fault_type?: string;
-  created_at: string;
-};
+// --- COMPONENT: SEARCH BAR GOOGLE MAPS STYLE ---
+// Komponen ini ditaruh DI DALAM MapContainer agar bisa akses useMap()
+// Tapi stylingnya kita buat Absolute Floating biar cantik
+// ... import lainnya tetap sama
 
-type HistoryMapProps = {
-  detections?: Detection[] | null;
-};
+// GANTI component FloatingSearch dengan yang ini:
+// ... (Kode import tetap sama)
 
-// --- KOMPONEN KONTROL (SEARCH & GPS) ---
-function MapControls() {
+// ... imports tetap sama
+
+function FloatingSearch() {
   const map = useMap();
   const [query, setQuery] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!query) return;
-    setLoading(true);
-
-    const coordPattern = /^(-?\d+(\.\d+)?),\s*(-?\d+(\.\d+)?)$/;
-    const match = query.match(coordPattern);
-
-    if (match) {
-      const lat = parseFloat(match[1]);
-      const lng = parseFloat(match[3]);
-      map.flyTo([lat, lng], 13, { animate: true });
-      setLoading(false);
-    } else {
-      try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1`);
-        const data = await res.json();
-        if (data && data.length > 0) {
-          const { lat, lon } = data[0];
-          map.flyTo([parseFloat(lat), parseFloat(lon)], 13, { animate: true });
-        } else {
-          alert("Lokasi tidak ditemukan");
-        }
-      } catch (err) {
-        alert("Gagal mencari lokasi");
-      } finally {
-        setLoading(false);
+  // Close suggestion saat klik di luar
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
       }
     }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [wrapperRef]);
+
+  // --- LOGIC FETCH MELALUI PROXY ---
+  useEffect(() => {
+    const controller = new AbortController();
+    const signal = controller.signal;
+
+    const fetchLocation = async () => {
+      if (!query || query.length <= 2) {
+        setSuggestions([]);
+        setShowSuggestions(false);
+        setIsSearching(false);
+        return;
+      }
+
+      setIsSearching(true);
+      
+      try {
+        // PERUBAHAN DISINI: Kita fetch ke API internal kita sendiri
+        const safeQuery = encodeURIComponent(query);
+        const res = await fetch(`/api/search-location?q=${safeQuery}`, { signal });
+
+        if (!res.ok) throw new Error("API Error");
+        
+        const data = await res.json();
+        
+        if (!signal.aborted) {
+            setSuggestions(data || []);
+            setShowSuggestions(true);
+        }
+
+      } catch (e: any) {
+        if (e.name !== 'AbortError') {
+             // console.warn("Search info:", e.message); // Uncomment untuk debug
+        }
+      } finally {
+        if (!signal.aborted) {
+          setIsSearching(false);
+        }
+      }
+    };
+
+    const timer = setTimeout(() => {
+      fetchLocation();
+    }, 500); // Debounce bisa lebih cepat karena kita pakai proxy sendiri (500ms)
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [query]);
+
+  const handleSelectLocation = (lat: string, lon: string, name: string) => {
+    map.flyTo([parseFloat(lat), parseFloat(lon)], 16, { animate: true, duration: 1.5 });
+    setQuery(name); 
+    setShowSuggestions(false);
   };
 
   const handleLocateMe = () => {
-    map.locate().on("locationfound", function (e) {
-      map.flyTo(e.latlng, 15, { animate: true });
-    }).on("locationerror", function (e) {
-      alert(e.message);
-    });
+    setIsSearching(true);
+    map.locate({ setView: true, maxZoom: 16 })
+      .on("locationfound", () => setIsSearching(false))
+      .on("locationerror", (e) => {
+        setIsSearching(false);
+        alert("Gagal mendeteksi lokasi: " + e.message);
+      });
   };
 
-  // --- PERUBAHAN POSISI: leaflet-top leaflet-left ---
-  // Pindah ke Kiri Atas agar Kanan Atas eksklusif untuk Layer Control
   return (
-    <div className="leaflet-top leaflet-left " style={{ pointerEvents: 'auto', marginTop: '10px', marginLeft: '10px' }}>
-      <div className="leaflet-control flex flex-col gap-2 items-start">
+    <div 
+      ref={wrapperRef}
+      className="absolute top-4 left-4 right-4 md:right-auto md:w-96 z-[1000] flex flex-col gap-2 pointer-events-auto font-sans"
+    >
+      <div className="flex items-center bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden h-12 transition-all focus-within:ring-2 focus-within:ring-blue-500/50">
+        <div className="pl-4 text-gray-400">
+          <Search size={20} />
+        </div>
+        <input 
+          type="text" 
+          placeholder="Cari lokasi (Kecamatan, Desa)..." 
+          className="flex-1 px-3 py-2 outline-none text-gray-700 text-sm h-full bg-transparent"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onFocus={() => { if(suggestions.length > 0) setShowSuggestions(true); }}
+        />
+        {isSearching && (
+          <div className="pr-3 animate-spin text-blue-500">
+            <Loader2 size={18} />
+          </div>
+        )}
         
-        {/* Search Bar */}
-        <form onSubmit={handleSearch} className="flex items-center bg-white rounded-lg shadow-md border border-gray-300 overflow-hidden w-64">
-          <input 
-            type="text" 
-            placeholder="Cari lokasi / lat,long..." 
-            className="flex-1 px-3 py-2 text-sm outline-none text-gray-700"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-          <button type="submit" className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 transition">
-            {loading ? <span className="animate-spin text-xs">⌛</span> : <Search className="h-4 w-4" />}
-          </button>
-        </form>
-
-        {/* Tombol GPS */}
+        <div className="border-l h-6 border-gray-200 mx-1"></div>
         <button 
           onClick={handleLocateMe}
-          className="bg-white p-2 rounded-lg shadow-md border border-gray-300 text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition flex items-center justify-center w-10 h-10"
+          className="px-4 h-full hover:bg-gray-50 text-blue-600 transition-colors flex items-center justify-center active:bg-blue-100"
           title="Lokasi Saya"
         >
-          <Crosshair className="h-6 w-6" />
+          <Crosshair size={20} />
         </button>
-
       </div>
+
+      {showSuggestions && suggestions.length > 0 && (
+        <div className="bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden flex flex-col mt-1 animate-in fade-in slide-in-from-top-2 max-h-60 overflow-y-auto">
+          {suggestions.map((item) => (
+            <button
+              key={item.place_id}
+              onClick={() => handleSelectLocation(item.lat, item.lon, item.display_name)}
+              className="flex items-start gap-3 p-3 hover:bg-gray-50 text-left border-b last:border-b-0 border-gray-50 transition-colors group"
+            >
+              <MapPin className="h-4 w-4 text-gray-400 mt-1 group-hover:text-orange-500 shrink-0" />
+              <span className="text-xs text-gray-700 line-clamp-2 leading-relaxed">
+                {item.display_name}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-// --- KOMPONEN UTAMA ---
-export default function HistoryMap({ detections }: HistoryMapProps) {
+// ... (Sisa file tetap sama)
+
+// ... Sisanya (HistoryMap export default) tetap sama
+
+// --- MAIN COMPONENT ---
+export default function HistoryMap({ detections }: { detections: Detection[] }) {
   const safeDetections = Array.isArray(detections) ? detections : [];
-  const defaultCenter = { lat: -2.5489, lng: 118.0149 }; 
-  
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [geoJsonData, setGeoJsonData] = useState<any>(null);
 
   useEffect(() => {
     fetch('/data/patahan_aktif.geojson')
-      .then(response => response.json())
+      .then(res => res.json())
       .then(data => setGeoJsonData(data))
-      .catch(error => console.error('Error loading GeoJSON:', error));
+      .catch(err => console.error("Gagal load GeoJSON", err));
   }, []);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const onEachFaultFeature = (feature: any, layer: L.Layer) => {
-    if (feature.properties) {
-      const { namobj, klspthn, remark } = feature.properties;
-      const popupContent = `
-        <div class="p-2 min-w-[200px]">
-          <h3 class="font-bold text-lg mb-1 text-gray-800">${namobj || 'Sesar Tanpa Nama'}</h3>
-          <p class="text-sm"><span class="font-semibold">Status:</span> 
-             <span class="${(klspthn || '').toLowerCase().includes('aktif') ? 'text-red-600 font-bold' : 'text-gray-700'}">
-               ${klspthn || '-'}
-             </span>
-          </p>
-          ${remark ? `<p class="mt-2 text-xs text-gray-500 italic">${remark}</p>` : ''}
-        </div>
-      `;
-      layer.bindPopup(popupContent, { closeButton: false, autoPan: false });
-      layer.on({
-        mouseover: (e) => { e.target.setStyle({ weight: 5, color: '#ef4444', opacity: 1 }); e.target.openPopup(); },
-        mouseout: (e) => { e.target.setStyle({ weight: 3, color: '#ef4444', opacity: 0.6 }); e.target.closePopup(); }
-      });
-    }
-  };
-
-  const geoJsonStyle = { color: '#ef4444', weight: 3, opacity: 0.6 };
-
   return (
-    <div className="h-full w-full z-20 relative">
+    <div className="h-full w-full relative z-0">
       <MapContainer 
-        center={defaultCenter} 
+        center={[-2.5, 118]} 
         zoom={5} 
-        style={{ height: '100%', width: '100%' }}
-        zoomControl={false}
+        style={{ height: '100%', width: '100%' }} 
+        zoomControl={false} // Matikan zoom default biar layout bersih
       >
-        {/* Layer Controls (Posisi: Kanan Atas) */}
+        {/* --- MAP LAYERS --- */}
         <LayersControl position="bottomright">
-          <LayersControl.BaseLayer checked name="Peta Jalan (OSM)">
-            <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-          </LayersControl.BaseLayer>
-          <LayersControl.BaseLayer name="Citra Satelit (Esri)">
-            <TileLayer attribution='Tiles &copy; Esri' url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" />
-          </LayersControl.BaseLayer>
-          <LayersControl.BaseLayer name="Topografi & Geologi">
-            <TileLayer attribution='Map data: &copy; OpenStreetMap contributors, SRTM | Map style: &copy; OpenTopoMap' url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png" />
-          </LayersControl.BaseLayer>
-          <LayersControl.Overlay checked name="Jalur Patahan Aktif">
-             {geoJsonData && <GeoJSON data={geoJsonData} style={geoJsonStyle} onEachFeature={onEachFaultFeature} />}
+          <LayersControl.BaseLayer checked name="Peta Jalan"><TileLayer attribution='&copy; OSM' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" /></LayersControl.BaseLayer>
+          <LayersControl.BaseLayer name="Satelit"><TileLayer attribution='&copy; Esri' url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" /></LayersControl.BaseLayer>
+          <LayersControl.BaseLayer name="Topografi"><TileLayer attribution='&copy; OpenTopoMap' url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png" /></LayersControl.BaseLayer>
+          <LayersControl.Overlay checked name="Sesar Aktif">
+             {geoJsonData && <GeoJSON data={geoJsonData} style={{ color: '#ef4444', weight: 3, opacity: 0.7, dashArray: '5, 5' }} />}
           </LayersControl.Overlay>
         </LayersControl>
 
-        {/* Kontrol Kustom (Posisi: Kiri Atas - Diatur di dalam komponennya) */}
-        <MapControls />
+        {/* --- CUSTOM FLOATING SEARCH BAR --- */}
+        <FloatingSearch />
 
-        {/* Marker Riwayat */}
+        {/* --- MARKERS RENDER --- */}
         {safeDetections.map((item) => {
-          let icon = Icons.green;
-          const status = (item.status_level || "").toUpperCase();
-          if (status.includes("BAHAYA") || status.includes("TINGGI")) icon = Icons.red;
-          else if (status.includes("PERINGATAN") || status.includes("WASPADA")) icon = Icons.yellow;
-
           if (!item.latitude || !item.longitude) return null;
+          const isVerified = item.is_validated === true;
+          
+          // Parsing Data
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          let detailInfo: any = {};
+          try {
+             if (item.description) detailInfo = JSON.parse(item.description);
+          } catch (e) { /* ignore */ }
 
-          // ... (kode Marker)
+          const rawDistance = detailInfo.fault_distance; 
+          const distanceText = rawDistance !== undefined && rawDistance !== null 
+            ? `${Number(rawDistance).toFixed(2)} km` : "Data jarak tidak tersedia";
+          const aiAnalysis = detailInfo.visual_statement || item.description || "Analisis sedang diproses...";
+          const displayImage = item.overlay_image_url || item.original_image_url;
+          const isOverlay = !!item.overlay_image_url;
+
           return (
-            <Marker key={item.id} position={{ lat: item.latitude, lng: item.longitude }} icon={icon}>
-              <Popup className="min-w-[220px]">
-                <div className="flex flex-col gap-3">
-                  
-                  {/* Gambar Bukti */}
-                  <div className="relative w-full h-36 bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
-                    {item.original_image_url ? (
-                      <Image src={item.original_image_url} alt="Bukti Lapangan" fill className="object-cover" />
-                    ) : <div className="flex items-center justify-center h-full text-xs text-gray-400">No Image</div>}
-                  </div>
-
-                  {/* Detail Informasi */}
-                  <div className="space-y-1.5">
-                    {/* Pola / Fault Type */}
-                    <div>
-                      <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Pola Retakan</p>
-                      <p className="text-sm font-bold text-gray-900">{item.fault_type || "Tidak Teridentifikasi"}</p>
-                    </div>
-
-                    {/* Status */}
-                    <div>
-                      <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Status Analisis</p>
-                      <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold mt-0.5
-                        ${status.includes("BAHAYA") ? 'bg-red-100 text-red-700 border border-red-200' : 
-                          status.includes("WASPADA") ? 'bg-yellow-100 text-yellow-700 border border-yellow-200' : 
-                          'bg-green-100 text-green-700 border border-green-200'}`}>
-                        {item.status_level || "AMAN"}
+            <Marker key={item.id} position={[item.latitude, item.longitude]} icon={isVerified ? Icons.verified : Icons.unverified}>
+              <Popup className="custom-popup-width" maxWidth={320}>
+                <div className="flex flex-col gap-3 font-sans">
+                  {/* ... (Isi Popup sama persis seperti sebelumnya) ... */}
+                  {/* HEADER */}
+                  <div className="flex justify-between items-center border-b pb-2 border-gray-100">
+                    <span className="text-xs font-bold text-gray-500">ID: #{item.id}</span>
+                    {isVerified ? (
+                      <span className="flex items-center gap-1 text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold border border-green-200">
+                        <CheckCircle2 size={10} /> TERVERIFIKASI
                       </span>
-                    </div>
+                    ) : (
+                      <span className="flex items-center gap-1 text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-bold border border-gray-200">
+                        <AlertTriangle size={10} /> USER REPORT
+                      </span>
+                    )}
+                  </div>
 
-                    {/* Waktu */}
-                    <div className="pt-2 border-t mt-1">
-                      <p className="text-[10px] text-gray-400 flex items-center gap-1">
-                        🕒 {new Date(item.created_at).toLocaleDateString('id-ID', { 
-                          day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' 
-                        })}
-                      </p>
+                  {/* IMAGE */}
+                  <div className="relative w-full h-40 bg-gray-100 rounded-lg overflow-hidden group border border-gray-200 shadow-sm">
+                    {displayImage ? (
+                      <>
+                        <Image src={displayImage} alt="Deteksi" fill className="object-cover" sizes="(max-width: 768px) 100vw, 300px"/>
+                        <div className={`absolute bottom-0 left-0 right-0 text-white text-[10px] p-1 text-center backdrop-blur-sm ${isOverlay ? 'bg-blue-600/80' : 'bg-gray-800/60'}`}>
+                          {isOverlay ? "Visualisasi AI" : "Original Image"}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-xs text-gray-400">No Image</div>
+                    )}
+                  </div>
+
+                  {/* INFO GRID */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-gray-50 p-2 rounded border border-gray-200">
+                       <p className="text-[10px] text-gray-500 font-bold uppercase mb-0.5">Pola</p>
+                       <p className="text-sm font-bold text-gray-800 truncate">{item.fault_type || "-"}</p>
+                    </div>
+                    <div className="bg-gray-50 p-2 rounded border border-gray-200">
+                       <p className="text-[10px] text-gray-500 font-bold uppercase mb-0.5">Status</p>
+                       <span className={`text-xs font-bold px-2 py-0.5 rounded inline-block ${
+                         item.status_level?.includes('BAHAYA') ? 'bg-red-100 text-red-700' : 
+                         item.status_level?.includes('WASPADA') ? 'bg-yellow-100 text-yellow-700' : 
+                         'bg-green-100 text-green-700'
+                       }`}>
+                         {item.status_level || "AMAN"}
+                       </span>
                     </div>
                   </div>
 
+                  {/* DETAILS */}
+                  <div className="space-y-2 text-xs text-gray-600 bg-blue-50/40 p-2.5 rounded border border-blue-100">
+                    <div className="flex items-start gap-2">
+                       <Ruler size={14} className="mt-0.5 text-blue-600 shrink-0" />
+                       <div>
+                         <span className="font-bold text-blue-900 block">Jarak Sesar Terdekat:</span>
+                         <span className="font-mono text-gray-800 bg-white/50 px-1 rounded font-bold">{distanceText}</span>
+                       </div>
+                    </div>
+                    <div className="flex items-start gap-2 pt-2 border-t border-blue-200/50">
+                       <FileText size={14} className="mt-0.5 text-blue-600 shrink-0" />
+                       <div>
+                         <span className="font-bold text-blue-900 block">Analisis Sistem:</span>
+                         <p className="leading-relaxed text-gray-700 mt-1 line-clamp-4 hover:line-clamp-none transition-all cursor-pointer">{aiAnalysis}</p>
+                       </div>
+                    </div>
+                  </div>
+
+                  {/* FOOTER */}
+                  <p className="text-[10px] text-gray-400 text-right mt-1">
+                    {new Date(item.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour:'2-digit', minute:'2-digit' })}
+                  </p>
                 </div>
               </Popup>
             </Marker>

@@ -14,7 +14,7 @@ const imageMetadata = {
 
 export const metadata: Metadata = {
   title: "Maps",
-  description: "Aplikasi Validasi Data Geospasial untuk Deteksi Retakan pada Tebing dan Batuan",
+  description: "Aplikasi Validasi Data Geospasial",
   icons: imageMetadata.icons,
 };
 
@@ -24,23 +24,15 @@ export default async function MapPage() {
 
   if (!user) redirect('/auth/login');
 
-  // --- UPDATE QUERY DATABASE ---
-  // Logika: Tampilkan (Punya Saya) ATAU (Punya Orang Lain TAPI Berbahaya)
-  // Filter 'neq.AMAN' (Not Equal AMAN) akan mengambil BAHAYA, PERINGATAN, WASPADA
-  const { data: detections } = await supabase
-    .from('detection_reports')
-    .select('id, latitude, longitude, original_image_url, status_level, fault_type, created_at, user_id')
-    // LOGIKA FILTER BARU:
-    // Tampilkan jika: (Milik Saya) ATAU (Sudah Divalidasi Admin)
-    .or(`user_id.eq.${user.id},is_validated.eq.true`) 
-    .order('created_at', { ascending: false })
-    .limit(1000);
+  // GAK PERLU FETCH DATA DI SINI LAGI
+  // Biarkan HistoryMapWrapper yang handle fetch di client side 
+  // supaya bisa dapet data realtime & lengkap (overlay, description, dll).
 
   return (
     <DashboardLayout user={user} showSidebar={false} showChatbot={false}>
       <div className="flex h-full w-full flex-col relative z-30">
         
-        {/* Overlay Legenda (Tetap Sama) */}
+        {/* Overlay Legenda */}
         <div className="absolute bottom-7 left-4 z-[400] bg-white/95 backdrop-blur-sm p-3 rounded-lg shadow-lg border border-gray-200 max-w-xs transition-all hover:scale-105">
           <h1 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 border-b pb-1">Legenda</h1>
           <div className="flex flex-col gap-2 text-xs text-gray-700 font-medium">
@@ -66,7 +58,8 @@ export default async function MapPage() {
         
         {/* Peta Fullscreen */}
         <div className="flex-1 relative z-0">
-          <HistoryMapWrapper detections={detections || []} />
+          {/* Hapus props detections, biarkan wrapper fetch sendiri */}
+          <HistoryMapWrapper />
         </div>
       </div>
     </DashboardLayout>
