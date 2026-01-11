@@ -15,6 +15,20 @@ import { createClient } from "@/utils/supabase/client";
 import dynamic from "next/dynamic";
 import { analyzeImpact, ImpactItem } from "@/utils/impactAnalysis";
 
+// --- HELPER: CONVERT BASE64 KE BLOB (FILE FISIK) ---
+const base64ToBlob = (base64: string, contentType = 'image/png') => {
+  // Bersihkan prefix data:image/png;base64, jika ada
+  const cleanBase64 = base64.replace(/^data:image\/(png|jpg|jpeg);base64,/, "");
+  
+  const byteCharacters = atob(cleanBase64);
+  const byteNumbers = new Array(byteCharacters.length);
+  for (let i = 0; i < byteCharacters.length; i++) {
+    byteNumbers[i] = byteCharacters.charCodeAt(i);
+  }
+  const byteArray = new Uint8Array(byteNumbers);
+  return new Blob([byteArray], { type: contentType });
+};
+
 const MapPicker = dynamic(
   () => import("@/app/components/dashboard/MapPicker"),
   {
@@ -260,51 +274,100 @@ export default function DetectionView() {
     setSaving(true);
 
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Sesi habis, silakan login ulang.");
 
       if (!selectedFile) throw new Error("File gambar tidak ditemukan.");
 
+      const timestamp = Date.now();
+      const userId = session.user.id;
       const fileExt = selectedFile.name.split(".").pop();
-      const fileName = `${session.user.id}-${Date.now()}.${fileExt}`;
-
+      
+      // 1. UPLOAD GAMBAR ORIGINAL (Sama seperti sebelumnya)
+      const originalName = `${userId}-${timestamp}-original.${fileExt}`;
       const { error: uploadError } = await supabase.storage
         .from("detection-image")
-        .upload(fileName, selectedFile);
+        .upload(originalName, selectedFile);
 
-      if (uploadError) throw new Error(`Gagal upload: ${uploadError.message}`);
+      if (uploadError) throw new Error(`Gagal upload original: ${uploadError.message}`);
 
       const { data: urlData } = supabase.storage
         .from("detection-image")
-        .getPublicUrl(fileName);
+        .getPublicUrl(originalName);
+      
+      const originalUrl = urlData.publicUrl;
 
-      const imageUrl = urlData.publicUrl;
+      // 2. UPLOAD OVERLAY & MASK (FIX ERROR 413)
+      // Kita convert Base64 dari AI jadi file, lalu upload ke Supabase
+      let overlayUrl = "";
+      let maskUrl = "";
 
-      // Payload Database
+      // A. Proses Overlay
+      if (predictData.images_base64?.overlay) {
+        try {
+          const overlayBlob = base64ToBlob(predictData.images_base64.overlay);
+          const overlayName = `${userId}-${timestamp}-overlay.png`;
+          
+          const { error: ovErr } = await supabase.storage
+              .from("detection-image")
+              .upload(overlayName, overlayBlob);
+          
+          if (!ovErr) {
+              const { data: ovUrlData } = supabase.storage
+                  .from("detection-image")
+                  .getPublicUrl(overlayName);
+              overlayUrl = ovUrlData.publicUrl;
+          }
+        } catch (e) {
+          console.warn("Gagal upload overlay, lanjut tanpa overlay.");
+        }
+      }
+
+      // B. Proses Mask
+      if (predictData.images_base64?.mask) {
+        try {
+          const maskBlob = base64ToBlob(predictData.images_base64.mask);
+          const maskName = `${userId}-${timestamp}-mask.png`;
+          
+          const { error: maskErr } = await supabase.storage
+              .from("detection-image")
+              .upload(maskName, maskBlob);
+          
+          if (!maskErr) {
+              const { data: maskUrlData } = supabase.storage
+                  .from("detection-image")
+                  .getPublicUrl(maskName);
+              maskUrl = maskUrlData.publicUrl;
+          }
+        } catch (e) {
+          console.warn("Gagal upload mask, lanjut tanpa mask.");
+        }
+      }
+
+      // 3. KIRIM URL KE DATABASE (Payload kecil & Aman)
       const payload = {
         latitude: coords!.lat,
         longitude: coords!.lng,
-        imageUrl: imageUrl,
-        originalImageUrl: imageUrl,
-        overlayImageUrl: predictData.images_base64?.overlay || "",
-        maskImageUrl: predictData.images_base64?.mask || "",
+        imageUrl: originalUrl,        
+        originalImageUrl: originalUrl,
+        overlayImageUrl: overlayUrl,  // <-- Ini sekarang URL pendek, bukan Base64 raksasa
+        maskImageUrl: maskUrl,        // <-- Ini sekarang URL pendek
         detectionResult:
           predictData.fault_analysis?.deskripsi_singkat ||
           "Tidak Teridentifikasi",
-        // Simpan semua detail analisis dalam format JSON di kolom description
         description: JSON.stringify({
           visual_statement: predictData.statement,
           visual_status: predictData.fault_analysis?.status_level,
           location_status: locationData.status,
           fault_name: locationData.nama_patahan,
           fault_distance: locationData.jarak_km,
-          impact_count: impactList.length, // Jumlah bangunan terdampak
-          impact_details: impactList, // Detail bangunan (array)
+          impact_count: impactList.length,
+          impact_details: impactList,
           analysis_timestamp: new Date().toISOString(),
         }),
       };
+
+      console.log("Sending payload to DB...", payload);
 
       const res = await fetch(`${DB_API_URL}/detections`, {
         method: "POST",
@@ -315,10 +378,14 @@ export default function DetectionView() {
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) throw new Error("Gagal menyimpan ke database.");
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`Gagal menyimpan: ${res.status} ${res.statusText} - ${errText}`);
+      }
 
       setIsSaved(true);
       alert("Data deteksi dan analisis dampak berhasil disimpan!");
+      
     } catch (err: any) {
       console.error("Save Error:", err);
       alert(`Gagal menyimpan: ${err.message}`);
