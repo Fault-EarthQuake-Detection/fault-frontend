@@ -1,6 +1,6 @@
 'use client';
 
-import { Home, Search, MapPin, Settings } from 'lucide-react';
+import { Home, Search, MapPin, Settings, Activity } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation'; // 1. Import usePathname
 
@@ -30,7 +30,7 @@ export default function BottomNav() {
         {/* DETECTION */}
         <Link href="/dashboard/detection">
           <button className={isActive('/dashboard/detection') ? activeClass : inactiveClass}>
-            <Search className="h-6 w-6" strokeWidth={isActive('/dashboard/detection') ? 3 : 2.5} />
+            <Activity className="h-6 w-6" strokeWidth={isActive('/dashboard/detection') ? 3 : 2.5} />
           </button>
         </Link>
 

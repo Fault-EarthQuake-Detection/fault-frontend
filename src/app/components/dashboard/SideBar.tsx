@@ -11,6 +11,8 @@ import {
   AlertTriangle,
   Settings,
   Shield,
+  Home,
+  Map
 } from "lucide-react";
 import Link from "next/link";
 
@@ -34,7 +36,7 @@ export default function Sidebar({
 }: SidebarProps) {
   const [reports, setReports] = useState<Report[]>([]);
   const supabase = createClient();
-
+  
   useEffect(() => {
     if (user) {
       const fetchHistory = async () => {
@@ -141,18 +143,33 @@ export default function Sidebar({
 
       {/* Footer Sidebar (Aksi) */}
       <div className="mt-4 pt-4 border-t space-y-2">
-        
-        {/* Link Deteksi Baru */}
+        {/* Link home */}
+        <Link
+          href="/dashboard/home"
+          className="flex items-center justify-center gap-2 w-full rounded-lg border border-gray-300 py-2.5 text-gray-700 font-medium hover:bg-gray-300 transition"
+        >
+          <Home className="h-4 w-4" /> Beranda
+        </Link>
+
+        {/* Link Deteksi */}
         <Link
           href="/dashboard/detection"
-          className="flex items-center justify-center gap-2 w-full rounded-lg bg-gray-900 py-3 text-white font-medium hover:bg-black transition shadow-sm"
+          className="flex items-center justify-center gap-2 w-full rounded-lg border border-gray-300 py-2.5 text-gray-700 font-medium hover:bg-gray-300 transition"
         >
-          <Activity className="h-4 w-4" /> Deteksi Baru
+          <Activity className="h-4 w-4" /> Deteksi
+        </Link>
+
+        {/* Link Maps */}
+        <Link
+          href="/dashboard/map"
+          className="flex items-center justify-center gap-2 w-full rounded-lg border border-gray-300 py-2.5 text-gray-700 font-medium hover:bg-gray-300 transition"
+        >
+          <MapPin className="h-4 w-4" /> Maps
         </Link>
         {/* Link Pengaturan */}
         <Link
           href="/dashboard/settings"
-          className="flex items-center justify-center gap-2 w-full rounded-lg border border-gray-300 py-2.5 text-gray-700 font-medium hover:bg-gray-50 transition"
+          className="flex items-center justify-center gap-2 w-full rounded-lg border border-gray-300 py-2.5 text-gray-700 font-medium hover:bg-gray-300 transition"
         >
           <Settings className="h-4 w-4" /> Pengaturan
         </Link>
