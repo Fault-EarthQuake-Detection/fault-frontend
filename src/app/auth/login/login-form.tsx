@@ -1,20 +1,36 @@
 // src/app/auth/login/login-form.tsx
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { createClient } from '@/utils/supabase/client';
-import { useRouter } from 'next/navigation';
-import { Eye, EyeOff } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { createClient } from "@/utils/supabase/client";
+import { useRouter } from "next/navigation";
+import { Check, Eye, EyeOff } from "lucide-react";
 
 export default function LoginForm() {
-  const [email, setEmail] = useState('');
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState(''); // Untuk Register
+  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState(""); // Untuk Register
   const [isSigningUp, setIsSigningUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  
+
+  const [passChecks, setPassChecks] = useState({
+    length: false,
+    upper: false,
+    number: false,
+    symbol: false,
+  });
+
+  useEffect(() => {
+    setPassChecks({
+      length: password.length >= 8,
+      upper: /[A-Z]/.test(password),
+      number: /[0-9]/.test(password),
+      symbol: /[^a-zA-Z0-9]/.test(password),
+    });
+  }, [password]);
+
   const router = useRouter();
   const supabase = createClient();
 
@@ -22,20 +38,23 @@ export default function LoginForm() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) {
-      alert('Password dan Ulangi Password tidak sama!');
+      alert("Password dan Ulangi Password tidak sama!");
       return;
     }
     try {
-      const res = await fetch('https://fault-dbservice.vercel.app/auth/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, username, password }),
-      });
+      const res = await fetch(
+        "https://fault-dbservice.vercel.app/auth/signup",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, username, password }),
+        }
+      );
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Gagal mendaftar.');
-      alert('Registrasi sukses! Silakan login.');
+      if (!res.ok) throw new Error(data.error || "Gagal mendaftar.");
+      alert("Registrasi sukses! Silakan login.");
       setIsSigningUp(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       alert(`Error: ${error.message}`);
     }
@@ -45,19 +64,19 @@ export default function LoginForm() {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch('https://fault-dbservice.vercel.app/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("https://fault-dbservice.vercel.app/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Gagal login.');
+      if (!res.ok) throw new Error(data.error || "Gagal login.");
 
       const { session } = data;
       await supabase.auth.setSession(session);
-      router.push('/');
+      router.push("/");
       router.refresh();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       alert(`Error: ${error.message}`);
     }
@@ -66,14 +85,16 @@ export default function LoginForm() {
   // --- GOOGLE LOGIN ---
   const handleGoogleLogin = async () => {
     await supabase.auth.signInWithOAuth({
-      provider: 'google',
+      provider: "google",
       options: { redirectTo: `${location.origin}/auth/callback` },
     });
   };
 
   return (
-    <form onSubmit={isSigningUp ? handleSignUp : handleSignIn} className="flex flex-col gap-5">
-      
+    <form
+      onSubmit={isSigningUp ? handleSignUp : handleSignIn}
+      className="flex flex-col gap-5"
+    >
       {/* === MODE DAFTAR (REGISTER) === */}
       {isSigningUp ? (
         <>
@@ -114,7 +135,7 @@ export default function LoginForm() {
             </label>
             <div className="relative">
               <input
-                type={showPassword ? 'text' : 'password'}
+                type={showPassword ? "text" : "password"}
                 placeholder="********"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -129,7 +150,91 @@ export default function LoginForm() {
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
+
+            {/* VISUALISASI REQUIREMENT (Hanya muncul saat Register) */}
+            {isSigningUp && (
+              <div className="mt-2 grid grid-cols-2 gap-2 text-[10px] bg-gray-50 p-2 rounded border border-gray-200">
+                <div
+                  className={`flex items-center gap-1 ${
+                    passChecks.length
+                      ? "text-green-600 font-bold"
+                      : "text-gray-400"
+                  }`}
+                >
+                  {passChecks.length ? (
+                    <Check size={12} />
+                  ) : (
+                    <div className="w-3 h-3 rounded-full border border-gray-300" />
+                  )}
+                  Min. 8 Karakter
+                </div>
+                <div
+                  className={`flex items-center gap-1 ${
+                    passChecks.upper
+                      ? "text-green-600 font-bold"
+                      : "text-gray-400"
+                  }`}
+                >
+                  {passChecks.upper ? (
+                    <Check size={12} />
+                  ) : (
+                    <div className="w-3 h-3 rounded-full border border-gray-300" />
+                  )}
+                  Huruf Besar (A-Z)
+                </div>
+                <div
+                  className={`flex items-center gap-1 ${
+                    passChecks.number
+                      ? "text-green-600 font-bold"
+                      : "text-gray-400"
+                  }`}
+                >
+                  {passChecks.number ? (
+                    <Check size={12} />
+                  ) : (
+                    <div className="w-3 h-3 rounded-full border border-gray-300" />
+                  )}
+                  Angka (0-9)
+                </div>
+                <div
+                  className={`flex items-center gap-1 ${
+                    passChecks.symbol
+                      ? "text-green-600 font-bold"
+                      : "text-gray-400"
+                  }`}
+                >
+                  {passChecks.symbol ? (
+                    <Check size={12} />
+                  ) : (
+                    <div className="w-3 h-3 rounded-full border border-gray-300" />
+                  )}
+                  Simbol Unik (!@#$)
+                </div>
+              </div>
+            )}
           </div>
+
+          {isSigningUp && (
+          <div className="flex flex-col gap-1">
+             <label className="text-sm font-bold text-gray-700">Ulangi Password<span className="text-red-500">*</span></label>
+             <div className="relative">
+                <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    placeholder="********"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className={`w-full rounded border p-2 pr-10 text-black focus:outline-none ${
+                        confirmPassword && password !== confirmPassword ? 'border-red-500 focus:border-red-500' : 'border-gray-400 focus:border-black'
+                    }`}
+                    required
+                />
+                 {/* ... button eye toggle ... */}
+             </div>
+             {confirmPassword && password !== confirmPassword && (
+                 <p className="text-[10px] text-red-500 mt-1">Password tidak cocok!</p>
+             )}
+          </div>
+      )}
 
           {/* Ulangi Password */}
           <div className="flex flex-col gap-1">
@@ -138,7 +243,7 @@ export default function LoginForm() {
             </label>
             <div className="relative">
               <input
-                type={showConfirmPassword ? 'text' : 'password'}
+                type={showConfirmPassword ? "text" : "password"}
                 placeholder="********"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
@@ -180,7 +285,7 @@ export default function LoginForm() {
             </label>
             <div className="relative">
               <input
-                type={showPassword ? 'text' : 'password'}
+                type={showPassword ? "text" : "password"}
                 placeholder="********"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -205,14 +310,14 @@ export default function LoginForm() {
           type="submit"
           className="w-32 rounded border border-gray-400 bg-white py-2 text-sm font-bold text-black shadow-sm hover:bg-gray-50 transition"
         >
-          {isSigningUp ? 'Sign In' : 'Log In'}
+          {isSigningUp ? "Sign In" : "Log In"}
         </button>
       </div>
 
       {/* Login Sosial */}
       <div className="flex flex-col items-center gap-2">
         <span className="text-xs text-gray-500">
-          {isSigningUp ? 'Atau daftar dengan' : 'Atau masuk dengan'}
+          {isSigningUp ? "Atau daftar dengan" : "Atau masuk dengan"}
         </span>
         <button
           type="button"
@@ -245,7 +350,7 @@ export default function LoginForm() {
       <div className="text-center text-xs text-gray-500">
         {isSigningUp ? (
           <>
-            Sudah punya akun?{' '}
+            Sudah punya akun?{" "}
             <button
               type="button"
               onClick={() => setIsSigningUp(false)}
@@ -256,7 +361,7 @@ export default function LoginForm() {
           </>
         ) : (
           <>
-            Belum punya akun?{' '}
+            Belum punya akun?{" "}
             <button
               type="button"
               onClick={() => setIsSigningUp(true)}
