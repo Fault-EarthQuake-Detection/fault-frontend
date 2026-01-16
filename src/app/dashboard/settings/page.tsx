@@ -25,7 +25,7 @@ export default async function SettingsPage() {
   if (!user) redirect('/auth/login');   
 
   return (
-    <DashboardLayout user={user} showChatbot={false} showSidebar={false}>
+    <DashboardLayout user={user} showChatbot={true} showSidebar={true}>
       {/* Panggil Client Component SettingsView */}
       <SettingsView initialUser={user} />
     </DashboardLayout>

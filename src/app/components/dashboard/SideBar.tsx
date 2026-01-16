@@ -6,13 +6,9 @@ import { createClient } from "@/utils/supabase/client";
 import {
   X,
   Activity,
-  MapPin,
   Calendar,
   AlertTriangle,
-  Settings,
-  Shield,
-  Home,
-  Map
+  History // Ganti icon home jadi History biar relevan
 } from "lucide-react";
 import Link from "next/link";
 
@@ -40,25 +36,18 @@ export default function Sidebar({
   useEffect(() => {
     if (user) {
       const fetchHistory = async () => {
-        // Mengambil data riwayat dari tabel 'detection_reports'
         const { data, error } = await supabase
           .from("detection_reports")
           .select("id, status_level, fault_type, created_at")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false })
-          .limit(10); // Batasi 10 riwayat terakhir
+          .limit(15); // NAIKKAN LIMIT karena spacenya sekarang luas
 
-        // ... di dalam useEffect fetchHistory ...
         if (error) {
-          // Ganti console.error lama dengan ini:
-          console.error(
-            "Detail Gagal Ambil Riwayat:",
-            JSON.stringify(error, null, 2)
-          );
+          console.error("Gagal Ambil Riwayat:", error);
         } else if (data) {
           setReports(data);
         }
-        // ...
       };
       fetchHistory();
     }
@@ -66,26 +55,26 @@ export default function Sidebar({
 
   return (
     <aside
-      className={`flex w-80 shrink-0 flex-col border-r bg-white p-4 z-50 ${className}`}
+      className={`flex w-80 shrink-0 flex-col border-r bg-white z-50 ${className}`}
     >
       {/* Header Sidebar */}
-      <div className="flex items-center justify-between pb-4 border-b mb-4">
-        <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-          <Activity className="h-5 w-5 text-orange-600" />
+      <div className="flex items-center justify-between p-5 border-b bg-gray-50/50">
+        <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+          <History className="h-5 w-5 text-orange-600" />
           Riwayat Deteksi
         </h2>
         {onClose && (
           <button
             onClick={onClose}
-            className="rounded p-1 text-gray-500 hover:bg-gray-100 md:hidden"
+            className="rounded p-1 text-gray-500 hover:bg-gray-200 md:hidden"
           >
             <X className="h-5 w-5" />
           </button>
         )}
       </div>
 
-      {/* List Riwayat (Scrollable) */}
-      <nav className="flex-1 overflow-y-auto">
+      {/* List Riwayat (Full Height) */}
+      <nav className="flex-1 overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-gray-200">
         {reports.length > 0 ? (
           <ul className="space-y-3">
             {reports.map((item) => {
@@ -106,10 +95,10 @@ export default function Sidebar({
               return (
                 <li
                   key={item.id}
-                  className={`p-3 rounded-lg border text-sm  ${statusColor}`}
+                  className={`p-3 rounded-xl border text-sm transition-all hover:shadow-md ${statusColor}`}
                 >
                   <div className="flex justify-between items-start mb-1">
-                    <span className="font-bold text-gray-800">
+                    <span className="font-bold text-gray-900">
                       {item.fault_type || "Deteksi Sesar"}
                     </span>
                     {(status.includes("BAHAYA") ||
@@ -117,23 +106,30 @@ export default function Sidebar({
                       <AlertTriangle className="h-4 w-4 shrink-0" />
                     )}
                   </div>
-                  <div className="flex items-center gap-2 text-xs opacity-70 mt-2">
+                  
+                  <div className="flex items-center gap-2 text-xs opacity-80 mt-2 font-medium">
                     <Calendar className="h-3 w-3" />
-                    {new Date(item.created_at).toLocaleDateString("id-ID")}
+                    {new Date(item.created_at).toLocaleDateString("id-ID", {
+                        day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute:'2-digit'
+                    })}
                   </div>
-                  <div className="mt-2 text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-white/50 rounded w-fit">
-                    {item.status_level}
+                  
+                  <div className="mt-3 flex">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-1 bg-white/60 backdrop-blur-sm rounded-md border border-black/5 shadow-sm">
+                        {item.status_level}
+                    </span>
                   </div>
                 </li>
               );
             })}
           </ul>
         ) : (
-          <div className="text-center py-10 text-gray-400 text-sm">
-            <p>Belum ada riwayat.</p>
+          <div className="h-full flex flex-col items-center justify-center text-center p-6 text-gray-400">
+            <Activity className="h-10 w-10 mb-3 opacity-20" />
+            <p className="text-sm font-medium">Belum ada riwayat deteksi.</p>
             <Link
               href="/dashboard/detection"
-              className="text-blue-600 font-medium hover:underline mt-2 block"
+              className="text-xs text-orange-600 font-bold hover:underline mt-2"
             >
               Mulai deteksi sekarang
             </Link>
@@ -141,38 +137,11 @@ export default function Sidebar({
         )}
       </nav>
 
-      {/* Footer Sidebar (Aksi) */}
-      <div className="mt-4 pt-4 border-t space-y-2">
-        {/* Link home */}
-        <Link
-          href="/dashboard/home"
-          className="flex items-center justify-center gap-2 w-full rounded-lg border border-gray-300 py-2.5 text-gray-700 font-medium hover:bg-gray-300 transition"
-        >
-          <Home className="h-4 w-4" /> Beranda
-        </Link>
-
-        {/* Link Deteksi */}
-        <Link
-          href="/dashboard/detection"
-          className="flex items-center justify-center gap-2 w-full rounded-lg border border-gray-300 py-2.5 text-gray-700 font-medium hover:bg-gray-300 transition"
-        >
-          <Activity className="h-4 w-4" /> Deteksi
-        </Link>
-
-        {/* Link Maps */}
-        <Link
-          href="/dashboard/map"
-          className="flex items-center justify-center gap-2 w-full rounded-lg border border-gray-300 py-2.5 text-gray-700 font-medium hover:bg-gray-300 transition"
-        >
-          <MapPin className="h-4 w-4" /> Maps
-        </Link>
-        {/* Link Pengaturan */}
-        <Link
-          href="/dashboard/settings"
-          className="flex items-center justify-center gap-2 w-full rounded-lg border border-gray-300 py-2.5 text-gray-700 font-medium hover:bg-gray-300 transition"
-        >
-          <Settings className="h-4 w-4" /> Pengaturan
-        </Link>
+      {/* Footer (Info Singkat Saja) */}
+      <div className="p-3 bg-gray-50 border-t text-center">
+        <p className="text-[10px] text-gray-400">
+            Menampilkan {reports.length} riwayat terbaru
+        </p>
       </div>
     </aside>
   );

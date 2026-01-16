@@ -33,6 +33,7 @@ export default function DashboardLayout({
         user={user}
         // Matikan toggle jika sidebar disembunyikan
         onToggleSidebar={() => showSidebar && setIsSidebarOpen(!isSidebarOpen)}
+        showSidebarToggle={showSidebar}
       />
 
       {/* Overlay */}
