@@ -1,6 +1,6 @@
 'use client';
 
-import { Home, Search, MapPin, Settings } from 'lucide-react';
+import { Home, Search, MapPin, Settings, Activity } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation'; // 1. Import usePathname
 
@@ -17,7 +17,7 @@ export default function BottomNav() {
   const activeClass = "flex flex-col items-center rounded-full p-3 text-orange-600 bg-orange-50 shadow-sm ring-1 ring-orange-100 transition-all duration-200 transform scale-105";
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 p-4 pointer-events-none">
+    <div className="fixed bottom-0 left-0 right-0 z-40 p-4 pointer-events-none md:hidden">
       <nav className="mx-auto flex w-full max-w-xs items-center justify-around rounded-full bg-white/90 backdrop-blur-md p-2 shadow-xl ring-1 ring-black ring-opacity-5 pointer-events-auto">
         
         {/* HOME */}
@@ -30,7 +30,7 @@ export default function BottomNav() {
         {/* DETECTION */}
         <Link href="/dashboard/detection">
           <button className={isActive('/dashboard/detection') ? activeClass : inactiveClass}>
-            <Search className="h-6 w-6" strokeWidth={isActive('/dashboard/detection') ? 3 : 2.5} />
+            <Activity className="h-6 w-6" strokeWidth={isActive('/dashboard/detection') ? 3 : 2.5} />
           </button>
         </Link>
 
