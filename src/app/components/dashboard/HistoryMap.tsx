@@ -463,7 +463,7 @@ export default function HistoryMap({
         )}
 
         {/* LEGENDA - Update posisi & style untuk mobile */}
-        <div className="absolute bottom-6 md:bottom-8 left-4 z-[400] bg-white/95 backdrop-blur-md p-3 md:p-4 rounded-xl shadow-xl border border-gray-200 max-w-[160px] md:max-w-[200px] transition-all hover:scale-105 origin-bottom-left">
+        <div className="absolute bottom-6 md:bottom-8 left-4 z-[400] bg-white/95 backdrop-blur-md p-3 md:p-4 rounded-xl shadow-xl border border-gray-200 max-w-[160px] md:max-w-[200px] transition-all hover:scale-105">
           <h1 className="text-[10px] md:text-xs font-extrabold text-gray-600 uppercase tracking-widest mb-2 md:mb-3 border-b pb-1 md:pb-2 flex items-center gap-2">
             <Info size={12} className="text-orange-500 md:w-3.5 md:h-3.5" />{" "}
             Legenda
