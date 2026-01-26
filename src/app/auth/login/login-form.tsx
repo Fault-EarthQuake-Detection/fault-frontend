@@ -266,7 +266,7 @@ export default function LoginForm() {
           {/* Username / Email */}
           <div className="flex flex-col gap-1">
             <label className="text-sm font-bold text-gray-700">
-              Username / Email<span className="text-red-500">*</span>
+              Username<span className="text-red-500">*</span>
             </label>
             <input
               type="text"
