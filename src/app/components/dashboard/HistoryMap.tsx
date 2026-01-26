@@ -26,6 +26,7 @@ import {
   Info,
   Activity,
   Layers,
+  ImageIcon,
 } from "lucide-react";
 import type { Detection } from "./HistoryMapWrapper";
 
@@ -35,8 +36,8 @@ const createCustomIcon = (type: "verified" | "unverified") => {
   const iconHtml = `
     <div style="position: relative; width: 36px; height: 36px; filter: drop-shadow(0 4px 3px rgb(0 0 0 / 0.07));">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${color}" stroke="${
-    type === "verified" ? "#064e3b" : "#7f1d1d"
-  }" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        type === "verified" ? "#064e3b" : "#7f1d1d"
+      }" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
         <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
         <circle cx="12" cy="10" r="3" fill="white"></circle>
       </svg>
@@ -211,7 +212,7 @@ function FloatingSearch() {
         // Panggil API Route internal
         const res = await fetch(
           `/api/search-location?q=${encodeURIComponent(query)}`,
-          { signal }
+          { signal },
         );
 
         if (!res.ok) throw new Error("API Error");
@@ -555,10 +556,12 @@ export default function HistoryMap({
                         fill
                         className="object-cover hover:scale-105 transition-transform duration-500"
                         sizes="(max-width: 768px) 100vw, 300px"
+                        unoptimized={true}
                       />
                     ) : (
-                      <div className="flex items-center justify-center h-full text-xs text-gray-400">
-                        No Image
+                      <div className="flex items-center justify-center h-full text-gray-400 text-xs">
+                        <ImageIcon size={24} className="mb-1 opacity-50" />
+                        <span>Tidak ada gambar</span>
                       </div>
                     )}
                   </div>
